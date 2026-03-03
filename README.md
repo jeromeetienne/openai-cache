@@ -11,7 +11,7 @@ In the example below, we use a SQLite database to persist the cache.
 
 ```ts
 import OpenAI from "openai";
-import { OpenAICache } from "@jeromeetienne/openai-cache"; 
+import OpenAICache from "@jeromeetienne/openai-cache"; 
 import KeyvSqlite from '@keyv/sqlite';
 import { Cacheable } from "cacheable";
 
