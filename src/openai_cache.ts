@@ -85,12 +85,14 @@ export default class OpenAICache {
 		const headers = Array.from(clonedResponse.headers.entries());
 		const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
 
-		await this._cache.set(cacheKey, {
-			status: clonedResponse.status,
-			headers: normalizedHeaders,
-			body: responseBuffer.toString("base64"),
-			bodyEncoding: "base64",
-		});
+		if (response.ok) {
+			await this._cache.set(cacheKey, {
+				status: clonedResponse.status,
+				headers: normalizedHeaders,
+				body: responseBuffer.toString("base64"),
+				bodyEncoding: "base64",
+			});
+		}
 
 		// Return live response (body already buffered)
 		return new Response(responseBuffer, { status: response.status, headers: normalizedHeaders });

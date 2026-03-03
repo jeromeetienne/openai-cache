@@ -54,14 +54,14 @@ console.log(response.output_text);
 - **PRO**: Reduces redundant API calls, saving time and costs.
 data.
 - **NOTE**: When `temperature === 0`, caching works optimally as responses are deterministic. However, with `temperature > 0`, caching may reduce variety across multiple calls since identical prompts will return cached results instead of generating new varied responses.
+- **NOTE**: Only successful responses (`2xx`) are cached. Error responses (`4xx`/`5xx`) are returned normally but are not persisted.
 
 
 ## Possible improvements
 - dont cache if temporature > 0 or top_p < 1, You’ll freeze randomness if cached
   - NOTE: do that on options
-- check errors, and dont cache if error
-  - 429/500 errors should not be cached, but other errors (like invalid request) could be cached to prevent repeated bad requests
-  - tools requests errors should not be cached
+- add configurable cache policy for errors (for example, cache selected deterministic `4xx` while never caching `429`/`5xx`)
+- tools requests errors should not be cached
 
 ## Developper Notes
 

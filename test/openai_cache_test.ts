@@ -10,6 +10,8 @@ import OpenAICache from "../src/openai_cache.js";
 import KeyvSqlite from '@keyv/sqlite';
 import { Cacheable } from "cacheable";
 
+const hasOpenAIKey = process.env.OPENAI_API_KEY !== undefined && process.env.OPENAI_API_KEY.length > 0;
+
 async function createOpenAIClient() {
 	if (process.env.OPENAI_API_KEY === undefined || process.env.OPENAI_API_KEY.length === 0) {
 		throw new Error("OPENAI_API_KEY is required for integration tests");
@@ -29,7 +31,7 @@ async function createOpenAIClient() {
 	return openai;
 }
 
-describe("OpenAICache", () => {
+describe("OpenAICache", { skip: hasOpenAIKey === false }, () => {
 	it("should work with openai.responses.parse", async (t) => {
 		const openaiClient = await createOpenAIClient();
 
