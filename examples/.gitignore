@@ -1,0 +1,6 @@
+# ignore images generated during examples
+generated_image.png
+# ignore sounds generated during examples
+generated_speech.mp3
+# ignore the sqlite database file used for caching
+.openai_cache.sqlite
