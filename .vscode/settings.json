@@ -1,0 +1,8 @@
+{
+    // format on save
+    "editor.formatOnSave": true,
+    "[typescript]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 8
+    }
+}
