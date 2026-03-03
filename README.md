@@ -1,6 +1,11 @@
 # Cache OpenAI
-This is a simple caching layer for OpenAI API requests using local file storage. 
-It helps to reduce redundant API calls by storing responses in a cache directory `./.openai_cache`.
+A simple caching layer for [OpenAI API](https://www.npmjs.com/package/openai), designed to reduce redundant API calls and save time and costs. It works by intercepting API requests and storing their responses in a cache. When the same request is made again, the cached response is returned instead of making a new API call.
+
+It is based on the [cacheable](https://cacheable.org/docs/) library, which provides a simple interface for caching data with support for various storage backends (like in-memory, Redis, SQLite, etc). This allows you to easily integrate caching into your OpenAI API usage without having to manage the caching logic yourself.
+
+You can use any Keyv storage backend (like Redis, filesystem, etc) to store the cached responses. 
+See the [Keyv documentation](https://keyv.org/docs/) for more details on available storage options and how to set them up.
+In the example below, we use a SQLite database to persist the cache.
 
 ## Usage
 
@@ -41,9 +46,18 @@ data.
 
 ## Possible improvements
 - dont cache if temporature > 0 or top_p < 1, You’ll freeze randomness if cached
-- implement with keyv https://keyv.org/, instead of custom file system
-  - various storage backends (filesystem, redis, etc)
-  - built in TTL support
+  - NOTE: do that on options
 - check errors, and dont cache if error
   - 429/500 errors should not be cached, but other errors (like invalid request) could be cached to prevent repeated bad requests
   - tools requests errors should not be cached
+
+## Developper Notes
+
+### Q. how to publish the package to npm?
+A. Do the following steps:
+
+```bash
+npm run version:patch && npm run publish:all
+```
+
+Lots of trouble with the 2fa system
