@@ -61,3 +61,8 @@ npm run version:patch && npm run publish:all
 ```
 
 Lots of trouble with the 2fa system
+
+Revevant Documentation:
+- https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification
+- https://docs.npmjs.com/trusted-publishers
+- https://docs.npmjs.com/creating-and-viewing-access-tokens
