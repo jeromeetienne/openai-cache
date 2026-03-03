@@ -7,6 +7,18 @@ You can use any Keyv storage backend (like Redis, filesystem, etc) to store the 
 See the [Keyv documentation](https://keyv.org/docs/) for more details on available storage options and how to set them up.
 In the example below, we use a SQLite database to persist the cache.
 
+# Installation
+
+```bash
+npm install @jeromeetienne/openai-cache
+```
+
+If you want to use the SQLite storage backend, you also need to install the `@keyv/sqlite` package:
+
+```bash
+npm install @keyv/sqlite
+```
+
 ## Usage
 
 ```ts
