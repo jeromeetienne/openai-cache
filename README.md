@@ -6,19 +6,25 @@ It helps to reduce redundant API calls by storing responses in a cache directory
 
 ```ts
 import OpenAI from "openai";
-import { OpenAICache } from "./src/openai_cache"; // for repo-local usage
-// If published to npm, replace with your package import.
+import { OpenAICache } from "@jeromeetienne/openai-cache"; 
+import KeyvSqlite from '@keyv/sqlite';
+import { Cacheable } from "cacheable";
 
-const openaiCache = new OpenAICache({
-  cacheDir: ".cache/openai",
-  debug: true,
-});
+// init a cacheable instance
+// - here it is backed by a sqlite database, but you can use any Keyv storage backend (redis, filesystem, etc)
+const sqlitePath = `sqlite://${__dirname}/.openai_cache.sqlite`;
+const sqliteCache = new Cacheable({ secondary: new KeyvSqlite(sqlitePath) });
 
+// init the OpenAICache with the cacheable instance
+const openaiCache = new OpenAICache(sqliteCache);
+
+// init the OpenAI client with the cache's fetch function
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   fetch: openaiCache.getFetchFn(),
 });
 
+// now use it normally - responses will be cached in the sqlite database
 const response = await client.responses.create({
   model: "gpt-4.1-mini",
   input: "Say hello in one short sentence.",
