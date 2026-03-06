@@ -72,6 +72,8 @@ A. Set the `OPENAI_CACHE` environment variable to `disabled`:
 OPENAI_CACHE=disabled node your_app.js
 ```
 
+It will still write in the cache but will ignore the cached responses and always call the OpenAI API. This is useful for testing or debugging purposes when you want to bypass the cache without changing your code.
+
 ### Q. how to publish the package to npm?
 A. Do the following steps:
 
