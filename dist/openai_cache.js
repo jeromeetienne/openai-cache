@@ -56,7 +56,7 @@ class OpenAICache {
             .update(`${method}:${url}:${bodyForHash}`)
             .digest("hex");
         const cached = (await this._cache.get(cacheKey));
-        if (cached !== undefined) {
+        if (cached !== undefined && process.env.OPENAI_CACHE !== "disabled") {
             const bodyEncoding = (_a = cached.bodyEncoding) !== null && _a !== void 0 ? _a : "utf8";
             const cachedBody = node_buffer_1.Buffer.from(cached.body, bodyEncoding);
             // Return cached response

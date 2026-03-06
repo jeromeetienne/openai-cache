@@ -65,6 +65,13 @@ data.
 
 ## Developper Notes
 
+### Q. How to disable the cache ?
+A. Set the `OPENAI_CACHE` environment variable to `disabled`:
+
+```bash
+OPENAI_CACHE=disabled node your_app.js
+```
+
 ### Q. how to publish the package to npm?
 A. Do the following steps:
 
