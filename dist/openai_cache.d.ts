@@ -7,7 +7,7 @@ import { Cacheable } from "cacheable";
 export default class OpenAICache {
     private readonly _cache;
     private readonly _markResponseEnabled;
-    readonly MarkResponseName = "X_FROM_OPENAI_CACHE";
+    static readonly MarkResponseName = "X_FROM_OPENAI_CACHE";
     /**
      * Creates a new instance of OpenAICache.
      *

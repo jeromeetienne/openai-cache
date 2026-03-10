@@ -21,7 +21,6 @@ class OpenAICache {
      * the original response body so it is optional. so the response is { X_FROM_OPENAI_CACHE: true, ...originalResponseBody }
      */
     constructor(cache, { markResponseEnabled = false } = {}) {
-        this.MarkResponseName = "X_FROM_OPENAI_CACHE";
         this._cache = cache !== null && cache !== void 0 ? cache : new cacheable_1.Cacheable();
         this._markResponseEnabled = markResponseEnabled;
     }
@@ -149,4 +148,5 @@ class OpenAICache {
         return null; // unsupported body type
     }
 }
+OpenAICache.MarkResponseName = "X_FROM_OPENAI_CACHE";
 exports.default = OpenAICache;
