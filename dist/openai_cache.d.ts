@@ -6,7 +6,19 @@ import { Cacheable } from "cacheable";
  */
 export default class OpenAICache {
     private readonly _cache;
-    constructor(cache?: Cacheable);
+    private readonly _markResponseEnabled;
+    private readonly _markResponseName;
+    /**
+     * Creates a new instance of OpenAICache.
+     *
+     * @param cache cacheable instance
+     * @param options.markResponseEnabled whether to mark cached responses with an additional property in the JSON body (default: true).
+     * This can be useful for downstream logic that needs to differentiate between live and cached responses, but it does modify
+     * the original response body so it is optional. so the response is { X_FROM_OPENAI_CACHE: true, ...originalResponseBody }
+     */
+    constructor(cache?: Cacheable, { markResponseEnabled }?: {
+        markResponseEnabled?: boolean;
+    });
     /**
      * Cleans the OpenAI cache by deleting all cached values.
      */

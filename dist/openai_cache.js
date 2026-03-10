@@ -12,8 +12,18 @@ const cacheable_1 = require("cacheable");
  * It uses a Cacheable instance to store and retrieve cached responses based on a hash of the request details.
  */
 class OpenAICache {
-    constructor(cache) {
+    /**
+     * Creates a new instance of OpenAICache.
+     *
+     * @param cache cacheable instance
+     * @param options.markResponseEnabled whether to mark cached responses with an additional property in the JSON body (default: true).
+     * This can be useful for downstream logic that needs to differentiate between live and cached responses, but it does modify
+     * the original response body so it is optional. so the response is { X_FROM_OPENAI_CACHE: true, ...originalResponseBody }
+     */
+    constructor(cache, { markResponseEnabled = false } = {}) {
+        this._markResponseName = "X_FROM_OPENAI_CACHE";
         this._cache = cache !== null && cache !== void 0 ? cache : new cacheable_1.Cacheable();
+        this._markResponseEnabled = markResponseEnabled;
     }
     /**
      * Cleans the OpenAI cache by deleting all cached values.
@@ -41,7 +51,7 @@ class OpenAICache {
      * @returns A Promise that resolves to the Response to that request.
      */
     async _fetch(input, init) {
-        var _a;
+        var _a, _b;
         // Extract the URL from the input (string or Request)
         const url = typeof input === "string" ? input : input instanceof Request ? input.url : input.toString();
         // Normalize HTTP method
@@ -58,12 +68,31 @@ class OpenAICache {
         const cached = (await this._cache.get(cacheKey));
         if (cached !== undefined && process.env.OPENAI_CACHE !== "disabled") {
             const bodyEncoding = (_a = cached.bodyEncoding) !== null && _a !== void 0 ? _a : "utf8";
-            const cachedBody = node_buffer_1.Buffer.from(cached.body, bodyEncoding);
+            const cachedBodyBuffer = node_buffer_1.Buffer.from(cached.body, bodyEncoding);
             // Return cached response
-            return new Response(cachedBody, {
+            let newResponse = new Response(cachedBodyBuffer, {
                 status: cached.status,
                 headers: cached.headers,
             });
+            // honor this._markResponseEnabled option to indicate cache hit
+            const contentTypeIsJson = ((_b = newResponse.headers.get("content-type")) === null || _b === void 0 ? void 0 : _b.includes("application/json")) ? true : false;
+            if (this._markResponseEnabled && contentTypeIsJson) {
+                try {
+                    // decode JSON from cachedBodyBuffer
+                    const bodyJson = JSON.parse(cachedBodyBuffer.toString());
+                    // Set the magic property to indicate this response is from cache
+                    bodyJson.X_FROM_OPENAI_CACHE = true;
+                    // Rebuild response with modified body
+                    const modifiedBodyBuffer = node_buffer_1.Buffer.from(JSON.stringify(bodyJson));
+                    newResponse = new Response(modifiedBodyBuffer, { status: cached.status, headers: cached.headers, });
+                }
+                catch (error) {
+                    // If parsing fails, return the original cached response without modification
+                    console.warn("Failed to parse cached response body as JSON for header modification:", error);
+                }
+            }
+            // Return cached response (body already buffered)
+            return newResponse;
         }
         // Perform network fetch
         const response = await fetch(input, init);
