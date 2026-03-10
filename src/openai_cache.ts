@@ -18,7 +18,7 @@ type CachedResponseValue = {
 export default class OpenAICache {
 	private readonly _cache: Cacheable;
 	private readonly _markResponseEnabled: boolean;
-	private readonly _markResponseName = "X_FROM_OPENAI_CACHE";
+	public readonly markResponseName = "X_FROM_OPENAI_CACHE";
 
 	/**
 	 * Creates a new instance of OpenAICache.

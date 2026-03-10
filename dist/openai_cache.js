@@ -21,7 +21,7 @@ class OpenAICache {
      * the original response body so it is optional. so the response is { X_FROM_OPENAI_CACHE: true, ...originalResponseBody }
      */
     constructor(cache, { markResponseEnabled = false } = {}) {
-        this._markResponseName = "X_FROM_OPENAI_CACHE";
+        this.markResponseName = "X_FROM_OPENAI_CACHE";
         this._cache = cache !== null && cache !== void 0 ? cache : new cacheable_1.Cacheable();
         this._markResponseEnabled = markResponseEnabled;
     }
