@@ -7,6 +7,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_crypto_1 = __importDefault(require("node:crypto"));
 const node_buffer_1 = require("node:buffer");
 const cacheable_1 = require("cacheable");
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	OpenAICache
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 /**
  * OpenAICachingCacheable is a wrapper around the Fetch API that adds caching capabilities for OpenAI requests.
  * It uses a Cacheable instance to store and retrieve cached responses based on a hash of the request details.

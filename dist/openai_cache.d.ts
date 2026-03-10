@@ -1,5 +1,8 @@
-import { RequestInfo } from "openai/internal/builtin-types";
 import { Cacheable } from "cacheable";
+type FetchFn = typeof globalThis.fetch;
+type FetchInput = Parameters<FetchFn>[0];
+type FetchInit = Parameters<FetchFn>[1];
+type FetchResponse = Awaited<ReturnType<FetchFn>>;
 /**
  * OpenAICachingCacheable is a wrapper around the Fetch API that adds caching capabilities for OpenAI requests.
  * It uses a Cacheable instance to store and retrieve cached responses based on a hash of the request details.
@@ -32,7 +35,7 @@ export default class OpenAICache {
      * });
      * ```
      */
-    getFetchFn(): (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+    getFetchFn(): (input: FetchInput, init?: FetchInit) => Promise<FetchResponse>;
     /**
      * This is the fetch() implementation that adds caching for OpenAI requests.
      *
@@ -48,3 +51,4 @@ export default class OpenAICache {
     private static _normalizeHeaders;
     private static _serializeBodyForHash;
 }
+export {};
