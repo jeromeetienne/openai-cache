@@ -1,8 +1,20 @@
 // node imports
 import Crypto from "node:crypto";
 import { Buffer } from "node:buffer";
-import { RequestInfo, BodyInit } from "openai/internal/builtin-types";
 import { Cacheable } from "cacheable";
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Type
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// get type for fetch() function and its parameters/return type
+type FetchFn = typeof globalThis.fetch;
+type FetchInput = Parameters<FetchFn>[0];
+type FetchInit = Parameters<FetchFn>[1];
+type FetchInitBody = NonNullable<Exclude<FetchInit, undefined>["body"]>;
+type FetchResponse = Awaited<ReturnType<FetchFn>>;
 
 type CachedResponseValue = {
 	status: number;
@@ -10,6 +22,12 @@ type CachedResponseValue = {
 	body: string;
 	bodyEncoding?: BufferEncoding;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	OpenAICache
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * OpenAICachingCacheable is a wrapper around the Fetch API that adds caching capabilities for OpenAI requests.
@@ -49,7 +67,7 @@ export default class OpenAICache {
 	 * });
 	 * ```
 	 */
-	public getFetchFn(): (input: RequestInfo, init?: RequestInit) => Promise<Response> {
+	public getFetchFn(): (input: FetchInput, init?: FetchInit) => Promise<FetchResponse> {
 		return this._fetch.bind(this);
 	}
 
@@ -60,7 +78,7 @@ export default class OpenAICache {
 	 * @param init An options object containing any custom settings that you want to apply to the request.
 	 * @returns A Promise that resolves to the Response to that request.
 	 */
-	private async _fetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
+	private async _fetch(input: FetchInput, init?: FetchInit): Promise<FetchResponse> {
 		// Extract the URL from the input (string or Request)
 		const url = typeof input === "string" ? input : input instanceof Request ? input.url : input.toString();
 		// Normalize HTTP method
@@ -153,7 +171,7 @@ export default class OpenAICache {
 	}
 
 	// Serialize body into a deterministic string for hashing
-	private static _serializeBodyForHash(body: BodyInit | null | undefined) {
+	private static _serializeBodyForHash(body: FetchInitBody | null | undefined) {
 		if (body === undefined || body === null) return "";
 		if (typeof body === "string") return body;
 		if (Buffer.isBuffer(body)) return body.toString("base64");
