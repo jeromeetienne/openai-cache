@@ -1,6 +1,6 @@
 {
 	"name": "@jeromeetienne/openai-cache",
-	"version": "1.0.12",
+	"version": "1.0.13",
 	"main": "dist/openai_cache.js",
 	"types": "dist/openai_cache.d.ts",
 	"exports": {
