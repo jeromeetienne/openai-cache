@@ -74,6 +74,29 @@ OPENAI_CACHE=disabled node your_app.js
 
 It will still write in the cache but will ignore the cached responses and always call the OpenAI API. This is useful for testing or debugging purposes when you want to bypass the cache without changing your code.
 
+### Q. How to know if a given call was a cache hit or miss?
+A. You can enable the `markResponseEnabled` option when initializing the `OpenAICache`. When this option is enabled, the cache will add a custom property
+to the response object to indicate whether it was a cache hit or miss. 
+
+
+```ts
+const openaiCache = new OpenAICache(sqliteCache, {
+    markResponseEnabled: true, // default is false
+});
+
+// later, when you make a call, you can check the custom property to see if it was a cache hit or miss
+const response = await client.responses.create({
+    model: "gpt-4.1-mini",
+    input: "Say hello in one short sentence.",
+});
+
+if (response.X_FROM_OPENAI_CACHE) {
+    console.log("Cache hit!");
+} else {
+    console.log("Cache miss!");
+}
+```
+
 ### Q. how to publish the package to npm?
 A. Do the following steps:
 
