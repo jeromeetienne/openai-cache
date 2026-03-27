@@ -180,30 +180,11 @@ export default class OpenAICache {
 		return new Response(responseBuffer, { status: response.status, headers: normalizedHeaders });
 	}
 
-
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	//	Private functions
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Remove transfer/content encodings that no longer apply once the body is materialized
-	 * and optionally set a correct content-length for the cached payload.
-	 */
-	private static _normalizeHeaders(headers: [string, string][], bodyLength?: number): [string, string][] {
-		const drop = new Set([
-			"content-encoding", // body is already decoded by fetch()
-			"transfer-encoding",
-			"content-length", // will be recalculated
-		]);
-
-		const filtered = headers.filter(([name]) => drop.has(name.toLowerCase()) === false);
-		if (bodyLength !== undefined) {
-			filtered.push(["content-length", String(bodyLength)]);
-		}
-		return filtered;
-	}
 
 	/**
 	 * Wraps a streaming response in a pass-through ReadableStream that caches the
@@ -231,7 +212,7 @@ export default class OpenAICache {
 						headers: normalizedHeaders,
 						body: fullBody.toString("base64"),
 						bodyEncoding: "base64",
-					}).catch(() => {});
+					}).catch(() => { });
 					return;
 				}
 				chunks.push(value);
@@ -246,6 +227,25 @@ export default class OpenAICache {
 			status: responseStatus,
 			headers: responseHeaders,
 		});
+	}
+
+
+	/**
+	 * Remove transfer/content encodings that no longer apply once the body is materialized
+	 * and optionally set a correct content-length for the cached payload.
+	 */
+	private static _normalizeHeaders(headers: [string, string][], bodyLength?: number): [string, string][] {
+		const drop = new Set([
+			"content-encoding", // body is already decoded by fetch()
+			"transfer-encoding",
+			"content-length", // will be recalculated
+		]);
+
+		const filtered = headers.filter(([name]) => drop.has(name.toLowerCase()) === false);
+		if (bodyLength !== undefined) {
+			filtered.push(["content-length", String(bodyLength)]);
+		}
+		return filtered;
 	}
 
 	// Detect streaming SSE responses by content-type header
