@@ -86,21 +86,21 @@ class OpenAICache {
         const cacheKey = node_crypto_1.default.createHash("sha256")
             .update(`${method}:${url}:${bodyForHash}`)
             .digest("hex");
-        const cached = (await this._cache.get(cacheKey));
-        if (cached !== undefined && process.env.OPENAI_CACHE !== "disabled") {
-            const bodyEncoding = (_a = cached.bodyEncoding) !== null && _a !== void 0 ? _a : "utf8";
-            const cachedBodyBuffer = node_buffer_1.Buffer.from(cached.body, bodyEncoding);
+        const cachedValue = await this._cache.get(cacheKey);
+        if (cachedValue !== undefined && process.env.OPENAI_CACHE !== "disabled") {
+            const bodyEncoding = (_a = cachedValue.bodyEncoding) !== null && _a !== void 0 ? _a : "utf8";
+            const cachedBodyBuffer = node_buffer_1.Buffer.from(cachedValue.body, bodyEncoding);
             // For streaming SSE responses, return directly without JSON modification
-            if (OpenAICache._isStreamingResponse(cached.headers)) {
+            if (OpenAICache._isStreamingResponse(cachedValue.headers)) {
                 return new Response(cachedBodyBuffer, {
-                    status: cached.status,
-                    headers: cached.headers,
+                    status: cachedValue.status,
+                    headers: cachedValue.headers,
                 });
             }
             // Return cached response
             let newResponse = new Response(cachedBodyBuffer, {
-                status: cached.status,
-                headers: cached.headers,
+                status: cachedValue.status,
+                headers: cachedValue.headers,
             });
             // honor this._markResponseEnabled option to indicate cache hit
             const contentTypeIsJson = ((_b = newResponse.headers.get("content-type")) === null || _b === void 0 ? void 0 : _b.includes("application/json")) ? true : false;
@@ -112,7 +112,7 @@ class OpenAICache {
                     bodyJson.X_FROM_OPENAI_CACHE = true;
                     // Rebuild response with modified body
                     const modifiedBodyBuffer = node_buffer_1.Buffer.from(JSON.stringify(bodyJson));
-                    newResponse = new Response(modifiedBodyBuffer, { status: cached.status, headers: cached.headers, });
+                    newResponse = new Response(modifiedBodyBuffer, { status: cachedValue.status, headers: cachedValue.headers, });
                 }
                 catch (error) {
                     // If parsing fails, return the original cached response without modification
@@ -124,23 +124,19 @@ class OpenAICache {
         }
         // Perform network fetch
         const response = await fetch(input, init);
-        // For streaming SSE responses, return the original response (live stream)
-        // and cache the full body asynchronously in the background
+        // For streaming SSE responses, wait for the full body before caching
         if (OpenAICache._isStreamingResponse(response.headers)) {
             if (response.ok) {
                 const clonedResponse = response.clone();
-                clonedResponse.arrayBuffer().then((arrayBuffer) => {
-                    const responseBuffer = node_buffer_1.Buffer.from(arrayBuffer);
-                    const headers = Array.from(clonedResponse.headers.entries());
-                    const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
-                    return this._cache.set(cacheKey, {
-                        status: clonedResponse.status,
-                        headers: normalizedHeaders,
-                        body: responseBuffer.toString("base64"),
-                        bodyEncoding: "base64",
-                    });
-                }).catch((err) => {
-                    console.warn("OpenAICache: failed to cache streaming response:", err);
+                const arrayBuffer = await clonedResponse.arrayBuffer();
+                const responseBuffer = node_buffer_1.Buffer.from(arrayBuffer);
+                const headers = Array.from(clonedResponse.headers.entries());
+                const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
+                await this._cache.set(cacheKey, {
+                    status: clonedResponse.status,
+                    headers: normalizedHeaders,
+                    body: responseBuffer.toString("base64"),
+                    bodyEncoding: "base64",
                 });
             }
             return response;

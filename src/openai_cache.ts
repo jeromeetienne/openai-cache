@@ -111,23 +111,23 @@ export default class OpenAICache {
 			.update(`${method}:${url}:${bodyForHash}`)
 			.digest("hex");
 
-		const cached = (await this._cache.get(cacheKey)) as CachedResponseValue | undefined;
-		if (cached !== undefined && process.env.OPENAI_CACHE !== "disabled") {
-			const bodyEncoding: BufferEncoding = cached.bodyEncoding ?? "utf8";
-			const cachedBodyBuffer = Buffer.from(cached.body, bodyEncoding);
+		const cachedValue = await this._cache.get<CachedResponseValue>(cacheKey)
+		if (cachedValue !== undefined && process.env.OPENAI_CACHE !== "disabled") {
+			const bodyEncoding: BufferEncoding = cachedValue.bodyEncoding ?? "utf8";
+			const cachedBodyBuffer = Buffer.from(cachedValue.body, bodyEncoding);
 
 			// For streaming SSE responses, return directly without JSON modification
-			if (OpenAICache._isStreamingResponse(cached.headers)) {
+			if (OpenAICache._isStreamingResponse(cachedValue.headers)) {
 				return new Response(cachedBodyBuffer, {
-					status: cached.status,
-					headers: cached.headers,
+					status: cachedValue.status,
+					headers: cachedValue.headers,
 				});
 			}
 
 			// Return cached response
 			let newResponse = new Response(cachedBodyBuffer, {
-				status: cached.status,
-				headers: cached.headers,
+				status: cachedValue.status,
+				headers: cachedValue.headers,
 			});
 			// honor this._markResponseEnabled option to indicate cache hit
 			const contentTypeIsJson = newResponse.headers.get("content-type")?.includes("application/json") ? true : false;
@@ -139,7 +139,7 @@ export default class OpenAICache {
 					bodyJson.X_FROM_OPENAI_CACHE = true;
 					// Rebuild response with modified body
 					const modifiedBodyBuffer = Buffer.from(JSON.stringify(bodyJson));
-					newResponse = new Response(modifiedBodyBuffer, { status: cached.status, headers: cached.headers, });
+					newResponse = new Response(modifiedBodyBuffer, { status: cachedValue.status, headers: cachedValue.headers, });
 				} catch (error) {
 					// If parsing fails, return the original cached response without modification
 					console.warn("Failed to parse cached response body as JSON for header modification:", error);
@@ -152,23 +152,19 @@ export default class OpenAICache {
 		// Perform network fetch
 		const response = await fetch(input, init);
 
-		// For streaming SSE responses, return the original response (live stream)
-		// and cache the full body asynchronously in the background
+		// For streaming SSE responses, wait for the full body before caching
 		if (OpenAICache._isStreamingResponse(response.headers)) {
 			if (response.ok) {
 				const clonedResponse = response.clone();
-				clonedResponse.arrayBuffer().then((arrayBuffer) => {
-					const responseBuffer = Buffer.from(arrayBuffer);
-					const headers = Array.from(clonedResponse.headers.entries());
-					const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
-					return this._cache.set(cacheKey, {
-						status: clonedResponse.status,
-						headers: normalizedHeaders,
-						body: responseBuffer.toString("base64"),
-						bodyEncoding: "base64",
-					});
-				}).catch((err) => {
-					console.warn("OpenAICache: failed to cache streaming response:", err);
+				const arrayBuffer = await clonedResponse.arrayBuffer();
+				const responseBuffer = Buffer.from(arrayBuffer);
+				const headers = Array.from(clonedResponse.headers.entries());
+				const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
+				await this._cache.set(cacheKey, {
+					status: clonedResponse.status,
+					headers: normalizedHeaders,
+					body: responseBuffer.toString("base64"),
+					bodyEncoding: "base64",
 				});
 			}
 			return response;
