@@ -23,7 +23,9 @@ async function main() {
 	// initialize OpenAI client with caching
 	const sqlitePath = `sqlite://${Path.resolve(__dirname, `./.openai_cache.sqlite`)}`;
 	const sqliteCache = new Cacheable({ secondary: new KeyvSqlite(sqlitePath) });
-	const openaiCache = new OpenAICache(sqliteCache);
+	const openaiCache = new OpenAICache(sqliteCache, {
+		verboseLevel: 2, // enable verbose logging to see when cache is hit or missed
+	});
 	const openaiClient = new OpenAI({
 		fetch: openaiCache.getFetchFn()
 	});
@@ -45,7 +47,7 @@ async function main() {
 			'You are an assistant.',
 	});
 
-	const result = await OpenAiAgents.run(agent, `Count up to 10. ${new Date()}`, {
+	const result = await OpenAiAgents.run(agent, `Count up to 10`, {
 		stream: true,
 	});
 

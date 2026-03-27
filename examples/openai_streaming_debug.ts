@@ -20,7 +20,9 @@ async function main() {
 		// driver: 'better-sqlite3',
 	});
 	const sqliteCache = new Cacheable({ secondary: keyvStoreAdapter });
-	const openaiCache = new OpenAICache(sqliteCache);
+	const openaiCache = new OpenAICache(sqliteCache, {
+		verboseLevel: 2, // enable verbose logging to see when cache is hit or missed
+	});
 	const openaiClient = new OpenAI({
 		fetch: openaiCache.getFetchFn()
 	});

@@ -2,6 +2,7 @@
 import Crypto from "node:crypto";
 import { Buffer } from "node:buffer";
 import { Cacheable } from "cacheable";
+import Chalk from "chalk";
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -53,6 +54,8 @@ type CachedResponseValue = {
 export default class OpenAICache {
 	private readonly _cache: Cacheable;
 	private readonly _markResponseEnabled: boolean;
+	private readonly _verboseLevel: number;
+	private disabledCacheWarningLogged: boolean = false;
 	public static readonly MarkResponseName = "X_FROM_OPENAI_CACHE";
 
 	/**
@@ -63,9 +66,16 @@ export default class OpenAICache {
 	 * This can be useful for downstream logic that needs to differentiate between live and cached responses, but it does modify 
 	 * the original response body so it is optional. so the response is { X_FROM_OPENAI_CACHE: true, ...originalResponseBody }
 	 */
-	constructor(cache?: Cacheable, { markResponseEnabled = false }: { markResponseEnabled?: boolean } = {}) {
+	constructor(cache?: Cacheable, {
+		markResponseEnabled = false,
+		verboseLevel = 0,
+	}: {
+		markResponseEnabled?: boolean,
+		verboseLevel?: number
+	} = {}) {
 		this._cache = cache ?? new Cacheable();
 		this._markResponseEnabled = markResponseEnabled;
+		this._verboseLevel = verboseLevel;
 	}
 
 	/**
@@ -101,27 +111,54 @@ export default class OpenAICache {
 		// Normalize HTTP method
 		const method = (init?.method || "GET").toUpperCase();
 
+		// debugger
+
 		// Generate body hash payload
 		const bodyForHash = OpenAICache._serializeBodyForHash(init?.body);
 		// If body type unsupported, skip caching
-		if (bodyForHash === null) return fetch(input, init);
+		if (bodyForHash === null) {
+			if (this._verboseLevel > 1) {
+				console.warn(Chalk.yellow(`Skipping cache for ${method} ${url} due to unsupported body type`));
+			}
+			return fetch(input, init);
+		}
+
+
 
 		// Build cache key and file path
 		const cacheKey = Crypto.createHash("sha256")
 			.update(`${method}:${url}:${bodyForHash}`)
 			.digest("hex");
 
+		console.log("cacheKey", cacheKey, bodyForHash);
+
+		// Log a warning if cache is disabled via environment variable, but only once to avoid spamming the console
+		if (process.env.OPENAI_CACHE === "disabled" && this.disabledCacheWarningLogged === false) {
+			if (this._verboseLevel > 0) {
+				console.warn(Chalk.red("OpenAI cache is disabled via OPENAI_CACHE=disabled. All requests will be live and no caching will occur."));
+			}
+			this.disabledCacheWarningLogged = true;
+		}
+
 		const cachedValue = await this._cache.get<CachedResponseValue>(cacheKey)
 		if (cachedValue !== undefined && process.env.OPENAI_CACHE !== "disabled") {
 			const bodyEncoding: BufferEncoding = cachedValue.bodyEncoding ?? "utf8";
 			const cachedBodyBuffer = Buffer.from(cachedValue.body, bodyEncoding);
 
+
 			// For streaming SSE responses, return directly without JSON modification
 			if (OpenAICache._isStreamingResponse(cachedValue.headers)) {
+				if (this._verboseLevel > 1) {
+					console.log(Chalk.green(`Cache hit for streamed ${method} ${url}`));
+				}
 				return new Response(cachedBodyBuffer, {
 					status: cachedValue.status,
 					headers: cachedValue.headers,
 				});
+			}
+
+			if (this._verboseLevel > 1) {
+				console.log(Chalk.green(`Cache hit for non-streamed ${method} ${url}`));
 			}
 
 			// Return cached response
@@ -154,10 +191,17 @@ export default class OpenAICache {
 
 		// For streaming SSE responses, pipe through to enable progressive streaming + background caching
 		if (OpenAICache._isStreamingResponse(response.headers)) {
+			if (this._verboseLevel > 1) {
+				console.log(Chalk.yellow(`Cache miss for streamed ${method} ${url} - caching in background as it streams in`));
+			}
 			if (!response.ok || !response.body) {
 				return response;
 			}
 			return OpenAICache._createCachingStreamResponse(response, this._cache, cacheKey);
+		}
+
+		if (this._verboseLevel > 1) {
+			console.log(Chalk.yellow(`Cache miss for non-streamed ${method} ${url} - caching in background`));
 		}
 
 		const clonedResponse = response.clone();
@@ -259,12 +303,23 @@ export default class OpenAICache {
 
 	// Serialize body into a deterministic string for hashing
 	private static _serializeBodyForHash(body: FetchInitBody | null | undefined) {
+		// Handle null or undefined body
 		if (body === undefined || body === null) return "";
+
+		// Handle string body
 		if (typeof body === "string") return body;
+
+		// Handle Buffer body
 		if (Buffer.isBuffer(body)) return body.toString("base64");
+
+		// Handle ArrayBuffer body
 		if (body instanceof ArrayBuffer) return Buffer.from(body).toString("base64");
+
+		// Handle typed arrays (Uint8Array, Int8Array, etc.)
 		if (ArrayBuffer.isView(body)) return Buffer.from(body.buffer, body.byteOffset, body.byteLength).toString("base64");
-		return null; // unsupported body type
+
+		// Return null for unsupported body types to skip caching
+		return null;
 	}
 }
 

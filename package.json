@@ -66,6 +66,7 @@
 		"zod": "^4.3.6"
 	},
 	"dependencies": {
-		"cacheable": "^2.3.3"
+		"cacheable": "^2.3.3",
+		"chalk": "^5.6.2"
 	}
 }
