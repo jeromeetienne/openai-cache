@@ -1,11 +1,16 @@
 import Path from 'path';
 
+import * as OpenAiAgents from '@openai/agents';
 import { Cacheable } from 'cacheable';
 import OpenAICache from '../src/openai_cache';
 import KeyvSqlite from '@keyv/sqlite';
 import { OpenAI } from 'openai';
 
-const PROJECT_ROOT = Path.resolve(__dirname, '../');
+async function* streamToAsyncGenerator(stream: NodeJS.ReadableStream): AsyncGenerator<string> {
+	for await (const chunk of stream) {
+		yield chunk.toString();
+	}
+}
 
 async function main() {
 
@@ -16,15 +21,15 @@ async function main() {
 	///////////////////////////////////////////////////////////////////////////////
 
 	// initialize OpenAI client with caching
-	const sqlitePath = `sqlite://${Path.resolve(PROJECT_ROOT, `./.openai_cache.sqlite`)}`;
+	const sqlitePath = `sqlite://${Path.resolve(__dirname, `./.openai_cache.sqlite`)}`;
 	const sqliteCache = new Cacheable({ secondary: new KeyvSqlite(sqlitePath) });
 	const openaiCache = new OpenAICache(sqliteCache);
 	const openaiClient = new OpenAI({
-		// fetch: openaiCache.getFetchFn()
+		fetch: openaiCache.getFetchFn()
 	});
 
 	// set the global default OpenAI client used by @openai/agents
-	// OpenAiAgents.setDefaultOpenAIClient(openaiClient);
+	OpenAiAgents.setDefaultOpenAIClient(openaiClient);
 
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
@@ -32,36 +37,28 @@ async function main() {
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 
-	const stream = await openaiClient.responses.create({
-		model: 'gpt-5.2',
-		input: 'Say "Sheep sleep deep" ten times fast!',
+
+	const agent = new OpenAiAgents.Agent({
+		model: 'gpt-4.1-nano',
+		name: 'Storyteller',
+		instructions:
+			'You are an assistant.',
+	});
+
+	const result = await OpenAiAgents.run(agent, `Count up to 10. ${new Date()}`, {
 		stream: true,
 	});
 
-	for await (const event of stream) {
-		console.log(event);
+	const textStream = result.toTextStream({
+		compatibleWithNodeStreams: true,
+	})
+
+	for await (const chunk of streamToAsyncGenerator(textStream)) {
+		process.stdout.write(chunk);
 	}
 
-	// const agent = new OpenAiAgents.Agent({
-	// 	name: 'Storyteller',
-	// 	instructions:
-	// 		'You are a storyteller. You will be given a topic and you will tell a story about it.',
-	// });
-
-	// const result = await OpenAiAgents.run(agent, 'Tell me a story about a cat.', {
-	// 	stream: true,
-	// });
-
-	// const textStream = result.toTextStream({
-	// 	compatibleWithNodeStreams: true,
-	// })
-
-	// textStream.pipe(process.stdout);
-
-	// console.log('Waiting for stream to complete...');
-	// await result.completed;
-
-	// console.log('Stream completed');
+	console.log('Stream completed');
+	// process.exit(0);
 }
 
 
