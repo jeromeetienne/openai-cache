@@ -15,23 +15,6 @@ const cacheable_1 = require("cacheable");
 /**
  * OpenAICachingCacheable is a wrapper around the Fetch API that adds caching capabilities for OpenAI requests.
  * It uses a Cacheable instance to store and retrieve cached responses based on a hash of the request details.
- * - **OPENAI_CACHE** environment variable can be set to "disabled" to disable cache and always fetch
- * live responses (while still allowing manual cache management via cleanCache() and direct cache access)
- *
- * Example usage:
- *
- * ```js
- * import { Cacheable } from 'cacheable';
- * import OpenAICache from 'openai-cache';
- * import KeyvSqlite from '@keyv/sqlite';
- * import { OpenAI } from 'openai';
- *
- * const cache = new Cacheable({ secondary: new KeyvSqlite('sqlite://./openai_cache.sqlite') });
- * const openaiCache = new OpenAICache(cache);
- * const openaiClient = new OpenAI({
- *   fetch: openaiCache.getFetchFn()
- * });
- * ```
  */
 class OpenAICache {
     /**
@@ -90,13 +73,6 @@ class OpenAICache {
         if (cached !== undefined && process.env.OPENAI_CACHE !== "disabled") {
             const bodyEncoding = (_a = cached.bodyEncoding) !== null && _a !== void 0 ? _a : "utf8";
             const cachedBodyBuffer = node_buffer_1.Buffer.from(cached.body, bodyEncoding);
-            // For streaming SSE responses, return directly without JSON modification
-            if (OpenAICache._isStreamingResponse(cached.headers)) {
-                return new Response(cachedBodyBuffer, {
-                    status: cached.status,
-                    headers: cached.headers,
-                });
-            }
             // Return cached response
             let newResponse = new Response(cachedBodyBuffer, {
                 status: cached.status,
@@ -124,27 +100,6 @@ class OpenAICache {
         }
         // Perform network fetch
         const response = await fetch(input, init);
-        // For streaming SSE responses, return the original response (live stream)
-        // and cache the full body asynchronously in the background
-        if (OpenAICache._isStreamingResponse(response.headers)) {
-            if (response.ok) {
-                const clonedResponse = response.clone();
-                clonedResponse.arrayBuffer().then((arrayBuffer) => {
-                    const responseBuffer = node_buffer_1.Buffer.from(arrayBuffer);
-                    const headers = Array.from(clonedResponse.headers.entries());
-                    const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
-                    return this._cache.set(cacheKey, {
-                        status: clonedResponse.status,
-                        headers: normalizedHeaders,
-                        body: responseBuffer.toString("base64"),
-                        bodyEncoding: "base64",
-                    });
-                }).catch((err) => {
-                    console.warn("OpenAICache: failed to cache streaming response:", err);
-                });
-            }
-            return response;
-        }
         const clonedResponse = response.clone();
         // Materialize response body for caching
         const responseBuffer = node_buffer_1.Buffer.from(await clonedResponse.arrayBuffer());
@@ -182,15 +137,6 @@ class OpenAICache {
             filtered.push(["content-length", String(bodyLength)]);
         }
         return filtered;
-    }
-    // Detect streaming SSE responses by content-type header
-    static _isStreamingResponse(headers) {
-        var _a, _b, _c, _d;
-        if (headers instanceof Headers) {
-            return (_b = (_a = headers.get("content-type")) === null || _a === void 0 ? void 0 : _a.includes("text/event-stream")) !== null && _b !== void 0 ? _b : false;
-        }
-        const ct = headers.find(([name]) => name.toLowerCase() === "content-type");
-        return (_d = (_c = ct === null || ct === void 0 ? void 0 : ct[1]) === null || _c === void 0 ? void 0 : _c.includes("text/event-stream")) !== null && _d !== void 0 ? _d : false;
     }
     // Serialize body into a deterministic string for hashing
     static _serializeBodyForHash(body) {

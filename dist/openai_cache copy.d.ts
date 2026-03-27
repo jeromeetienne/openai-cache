@@ -6,23 +6,6 @@ type FetchResponse = Awaited<ReturnType<FetchFn>>;
 /**
  * OpenAICachingCacheable is a wrapper around the Fetch API that adds caching capabilities for OpenAI requests.
  * It uses a Cacheable instance to store and retrieve cached responses based on a hash of the request details.
- * - **OPENAI_CACHE** environment variable can be set to "disabled" to disable cache and always fetch
- * live responses (while still allowing manual cache management via cleanCache() and direct cache access)
- *
- * Example usage:
- *
- * ```js
- * import { Cacheable } from 'cacheable';
- * import OpenAICache from 'openai-cache';
- * import KeyvSqlite from '@keyv/sqlite';
- * import { OpenAI } from 'openai';
- *
- * const cache = new Cacheable({ secondary: new KeyvSqlite('sqlite://./openai_cache.sqlite') });
- * const openaiCache = new OpenAICache(cache);
- * const openaiClient = new OpenAI({
- *   fetch: openaiCache.getFetchFn()
- * });
- * ```
  */
 export default class OpenAICache {
     private readonly _cache;
@@ -66,7 +49,6 @@ export default class OpenAICache {
      * and optionally set a correct content-length for the cached payload.
      */
     private static _normalizeHeaders;
-    private static _isStreamingResponse;
     private static _serializeBodyForHash;
 }
 export {};
