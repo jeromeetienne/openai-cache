@@ -1,6 +1,8 @@
 # Cache OpenAI
 A simple caching layer for [OpenAI API](https://www.npmjs.com/package/openai), designed to reduce redundant API calls and save time and costs. It works by intercepting API requests and storing their responses in a cache. When the same request is made again, the cached response is returned instead of making a new API call.
 
+It supports **text responses**, **binary responses** (e.g. images), and **streaming** (SSE).
+
 It is based on the [cacheable](https://cacheable.org/docs/) library, which provides a simple interface for caching data with support for various storage backends (like in-memory, Redis, SQLite, etc). This allows you to easily integrate caching into your OpenAI API usage without having to manage the caching logic yourself.
 
 You can use any Keyv storage backend (like Redis, filesystem, etc) to store the cached responses. 
@@ -49,6 +51,12 @@ const response = await client.responses.create({
 
 console.log(response.output_text);
 ```
+
+## Environment Variables
+
+| Variable | Values | Description |
+|---|---|---|
+| `OPENAI_CACHE` | `disabled` | Bypass the cache: responses are still written but never read from cache. Useful for testing/debugging without changing code. |
 
 ## PRO/CON
 - **PRO**: Reduces redundant API calls, saving time and costs.
