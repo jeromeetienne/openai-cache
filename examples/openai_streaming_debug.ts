@@ -1,7 +1,7 @@
 import Path from 'path';
 
 import { Cacheable } from 'cacheable';
-import OpenAICache from 'openai-cache';
+import OpenAICache from '../src/openai_cache';
 import KeyvSqlite from '@keyv/sqlite';
 import { OpenAI } from 'openai';
 
@@ -34,7 +34,7 @@ async function main() {
 	// create a streaming response
 	const stream = await openaiClient.responses.create({
 		model: 'gpt-4.1-nano',
-		input: 'Say "Sheep sleep deep" eleven times fast! add an index number before each repetition.',
+		input: 'Say "Sheep sleep deep" 20 times fast! add an index number before each repetition. DO IT, dont ask me if I want it, just do it!',
 		stream: true,
 	});
 

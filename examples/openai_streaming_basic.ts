@@ -1,7 +1,7 @@
 import Path from 'path';
 
 import { Cacheable } from 'cacheable';
-import OpenAICache from 'openai-cache';
+import OpenAICache from '../src/openai_cache';
 import KeyvSqlite from '@keyv/sqlite';
 import { OpenAI } from 'openai';
 
