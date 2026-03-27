@@ -66,6 +66,11 @@ export default class OpenAICache {
      * and optionally set a correct content-length for the cached payload.
      */
     private static _normalizeHeaders;
+    /**
+     * Wraps a streaming response in a pass-through ReadableStream that caches the
+     * full body in the background once the stream completes.
+     */
+    private static _createCachingStreamResponse;
     private static _isStreamingResponse;
     private static _serializeBodyForHash;
 }
