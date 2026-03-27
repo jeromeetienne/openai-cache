@@ -32,6 +32,23 @@ type CachedResponseValue = {
 /**
  * OpenAICachingCacheable is a wrapper around the Fetch API that adds caching capabilities for OpenAI requests.
  * It uses a Cacheable instance to store and retrieve cached responses based on a hash of the request details.
+ * - **OPENAI_CACHE** environment variable can be set to "disabled" to disable cache and always fetch 
+ * live responses (while still allowing manual cache management via cleanCache() and direct cache access)
+ * 
+ * Example usage:
+ * 
+ * ```js
+ * import { Cacheable } from 'cacheable';
+ * import OpenAICache from 'openai-cache';
+ * import KeyvSqlite from '@keyv/sqlite';
+ * import { OpenAI } from 'openai';
+ * 
+ * const cache = new Cacheable({ secondary: new KeyvSqlite('sqlite://./openai_cache.sqlite') });
+ * const openaiCache = new OpenAICache(cache);
+ * const openaiClient = new OpenAI({
+ *   fetch: openaiCache.getFetchFn()
+ * });
+ * ```
  */
 export default class OpenAICache {
 	private readonly _cache: Cacheable;
@@ -98,6 +115,15 @@ export default class OpenAICache {
 		if (cached !== undefined && process.env.OPENAI_CACHE !== "disabled") {
 			const bodyEncoding: BufferEncoding = cached.bodyEncoding ?? "utf8";
 			const cachedBodyBuffer = Buffer.from(cached.body, bodyEncoding);
+
+			// For streaming SSE responses, return directly without JSON modification
+			if (OpenAICache._isStreamingResponse(cached.headers)) {
+				return new Response(cachedBodyBuffer, {
+					status: cached.status,
+					headers: cached.headers,
+				});
+			}
+
 			// Return cached response
 			let newResponse = new Response(cachedBodyBuffer, {
 				status: cached.status,
@@ -125,6 +151,29 @@ export default class OpenAICache {
 
 		// Perform network fetch
 		const response = await fetch(input, init);
+
+		// For streaming SSE responses, return the original response (live stream)
+		// and cache the full body asynchronously in the background
+		if (OpenAICache._isStreamingResponse(response.headers)) {
+			if (response.ok) {
+				const clonedResponse = response.clone();
+				clonedResponse.arrayBuffer().then((arrayBuffer) => {
+					const responseBuffer = Buffer.from(arrayBuffer);
+					const headers = Array.from(clonedResponse.headers.entries());
+					const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
+					return this._cache.set(cacheKey, {
+						status: clonedResponse.status,
+						headers: normalizedHeaders,
+						body: responseBuffer.toString("base64"),
+						bodyEncoding: "base64",
+					});
+				}).catch((err) => {
+					console.warn("OpenAICache: failed to cache streaming response:", err);
+				});
+			}
+			return response;
+		}
+
 		const clonedResponse = response.clone();
 		// Materialize response body for caching
 		const responseBuffer = Buffer.from(await clonedResponse.arrayBuffer());
@@ -168,6 +217,15 @@ export default class OpenAICache {
 			filtered.push(["content-length", String(bodyLength)]);
 		}
 		return filtered;
+	}
+
+	// Detect streaming SSE responses by content-type header
+	private static _isStreamingResponse(headers: Headers | [string, string][]): boolean {
+		if (headers instanceof Headers) {
+			return headers.get("content-type")?.includes("text/event-stream") ?? false;
+		}
+		const ct = headers.find(([name]) => name.toLowerCase() === "content-type");
+		return ct?.[1]?.includes("text/event-stream") ?? false;
 	}
 
 	// Serialize body into a deterministic string for hashing

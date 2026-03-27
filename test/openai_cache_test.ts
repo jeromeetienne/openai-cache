@@ -49,6 +49,23 @@ describe("OpenAICache", { skip: hasOpenAIKey === false }, () => {
 		assert.ok(response.output_parsed !== null)
 		assert.ok(response.output_parsed.answer.length > 0);
 	})
+	it("should work with streaming responses", async (t) => {
+		const openaiClient = await createOpenAIClient();
+
+		const stream = await openaiClient.responses.create({
+			model: "gpt-4.1-nano",
+			input: "Say hello in one sentence.",
+			stream: true,
+		});
+
+		let text = "";
+		for await (const event of stream) {
+			if (event.type === "response.output_text.delta") {
+				text += (event as OpenAI.Responses.ResponseTextDeltaEvent).delta;
+			}
+		}
+		assert.ok(text.length > 0);
+	})
 	it("should work with openai.audio.speech.create", async (t) => {
 		const openaiClient = await createOpenAIClient();
 

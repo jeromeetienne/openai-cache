@@ -5,8 +5,6 @@ import OpenAICache from 'openai-cache';
 import KeyvSqlite from '@keyv/sqlite';
 import { OpenAI } from 'openai';
 
-// const PROJECT_ROOT = Path.resolve(__dirname, '../');
-
 async function main() {
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -32,7 +30,7 @@ async function main() {
 	// create a streaming response
 	const stream = await openaiClient.responses.create({
 		model: 'gpt-4.1-nano',
-		input: 'Say "Sheep sleep deep" ten times fast!',
+		input: 'Say "Sheep sleep deep" eleven times fast! add an index number before each repetition.',
 		stream: true,
 	});
 
@@ -41,7 +39,9 @@ async function main() {
 		if (_event.type !== 'response.output_text.delta') continue
 		const event = _event as OpenAI.Responses.ResponseTextDeltaEvent;
 
-		process.stdout.write(event.delta);
+		// console.log(`chunk: ${event.delta}`);
+		// sleep for 100ms
+		// await new Promise(resolve => setTimeout(resolve, 100));
 	}
 }
 
