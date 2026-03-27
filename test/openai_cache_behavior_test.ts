@@ -92,6 +92,46 @@ describe("OpenAICache behavior", () => {
 		}
 	});
 
+	it("returns streaming response immediately without blocking", async () => {
+		const cache = new Cacheable();
+		const openaiCache = new OpenAICache(cache);
+		const fetchFn = openaiCache.getFetchFn();
+
+		let streamComplete = false;
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async () => {
+			const stream = new ReadableStream({
+				start(controller) {
+					controller.enqueue(new TextEncoder().encode('event: message\ndata: {"text":"hello"}\n\n'));
+					setTimeout(() => {
+						controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+						controller.close();
+						streamComplete = true;
+					}, 200);
+				}
+			});
+			return new Response(stream, {
+				status: 200,
+				headers: { "content-type": "text/event-stream" },
+			});
+		}) as typeof fetch;
+
+		try {
+			const response = await fetchFn("https://example.test/v1/mock", { method: "POST", body: '{"stream":true}' });
+			assert.equal(streamComplete, false, "fetchFn should return before the stream is fully consumed");
+			assert.ok(response.body, "response should have a readable body");
+
+			const body = await response.text();
+			assert.ok(body.includes("[DONE]"));
+			assert.equal(streamComplete, true, "stream should be complete after consuming");
+
+			// Wait for background caching
+			await new Promise(resolve => setTimeout(resolve, 100));
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
 	it("does not cache error responses", async () => {
 		const cache = new Cacheable();
 		const openaiCache = new OpenAICache(cache);

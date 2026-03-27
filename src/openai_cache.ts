@@ -152,22 +152,12 @@ export default class OpenAICache {
 		// Perform network fetch
 		const response = await fetch(input, init);
 
-		// For streaming SSE responses, wait for the full body before caching
+		// For streaming SSE responses, pipe through to enable progressive streaming + background caching
 		if (OpenAICache._isStreamingResponse(response.headers)) {
-			if (response.ok) {
-				const clonedResponse = response.clone();
-				const arrayBuffer = await clonedResponse.arrayBuffer();
-				const responseBuffer = Buffer.from(arrayBuffer);
-				const headers = Array.from(clonedResponse.headers.entries());
-				const normalizedHeaders = OpenAICache._normalizeHeaders(headers, responseBuffer.length);
-				await this._cache.set(cacheKey, {
-					status: clonedResponse.status,
-					headers: normalizedHeaders,
-					body: responseBuffer.toString("base64"),
-					bodyEncoding: "base64",
-				});
+			if (!response.ok || !response.body) {
+				return response;
 			}
-			return response;
+			return OpenAICache._createCachingStreamResponse(response, this._cache, cacheKey);
 		}
 
 		const clonedResponse = response.clone();
@@ -213,6 +203,49 @@ export default class OpenAICache {
 			filtered.push(["content-length", String(bodyLength)]);
 		}
 		return filtered;
+	}
+
+	/**
+	 * Wraps a streaming response in a pass-through ReadableStream that caches the
+	 * full body in the background once the stream completes.
+	 */
+	private static _createCachingStreamResponse(
+		response: FetchResponse,
+		cache: Cacheable,
+		cacheKey: string,
+	): FetchResponse {
+		const responseStatus = response.status;
+		const responseHeaders = Array.from(response.headers.entries());
+		const chunks: Uint8Array[] = [];
+		const reader = response.body!.getReader();
+
+		const passThrough = new ReadableStream<Uint8Array>({
+			async pull(controller) {
+				const { done, value } = await reader.read();
+				if (done) {
+					controller.close();
+					const fullBody = Buffer.concat(chunks);
+					const normalizedHeaders = OpenAICache._normalizeHeaders(responseHeaders, fullBody.length);
+					cache.set(cacheKey, {
+						status: responseStatus,
+						headers: normalizedHeaders,
+						body: fullBody.toString("base64"),
+						bodyEncoding: "base64",
+					}).catch(() => {});
+					return;
+				}
+				chunks.push(value);
+				controller.enqueue(value);
+			},
+			cancel() {
+				reader.cancel();
+			},
+		});
+
+		return new Response(passThrough, {
+			status: responseStatus,
+			headers: responseHeaders,
+		});
 	}
 
 	// Detect streaming SSE responses by content-type header
