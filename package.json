@@ -1,6 +1,6 @@
 {
 	"name": "openai-cache",
-	"version": "1.0.18",
+	"version": "1.0.19",
 	"main": "dist/openai_cache.js",
 	"types": "dist/openai_cache.d.ts",
 	"exports": {
