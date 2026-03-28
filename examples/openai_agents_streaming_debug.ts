@@ -47,7 +47,7 @@ async function main() {
 			'You are an assistant.',
 	});
 
-	const result = await OpenAiAgents.run(agent, `Count up to 10`, {
+	const result = await OpenAiAgents.run(agent, `Count up to 80`, {
 		stream: true,
 	});
 

@@ -130,7 +130,7 @@ export default class OpenAICache {
 			.update(`${method}:${url}:${bodyForHash}`)
 			.digest("hex");
 
-		console.log("cacheKey", cacheKey, bodyForHash);
+		// console.log("cacheKey", cacheKey, bodyForHash);
 
 		// Log a warning if cache is disabled via environment variable, but only once to avoid spamming the console
 		if (process.env.OPENAI_CACHE === "disabled" && this.disabledCacheWarningLogged === false) {
