@@ -1,24 +1,31 @@
 {
-	"compilerOptions": {
-		"target": "ES2022",
-		"module": "CommonJS",
-		"rootDir": "src",
-		"outDir": "dist",
-		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
-
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		"exactOptionalPropertyTypes": true,
-		"noImplicitOverride": true,
-		"noFallthroughCasesInSwitch": true,
-
-		"esModuleInterop": true,
-		"types": ["node"],
-		"forceConsistentCasingInFileNames": true,
-		"skipLibCheck": true
-	},
-	"include": ["src/**/*.ts"],
-	"exclude": ["dist", "node_modules", "examples", "test"]
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "CommonJS",
+        "rootDir": "src",
+        "outDir": "dist",
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "esModuleInterop": true,
+        "types": [
+            "node"
+        ],
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true
+    },
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "dist",
+        "node_modules",
+        "examples",
+        "test"
+    ]
 }
