@@ -57,7 +57,7 @@
 	"devDependencies": {
 		"@keyv/sqlite": "^4.0.8",
 		"@openai/agents": "^0.8.1",
-		"@types/node": "^25.1.0",
+		"@types/node": "^25.5.2",
 		"keyv": "^5.6.0",
 		"openai": "^6.17.0",
 		"ts-node": "^10.9.2",
