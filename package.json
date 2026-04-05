@@ -1,6 +1,7 @@
 {
 	"name": "openai-cache",
 	"version": "1.0.22",
+	"type": "module",
 	"main": "dist/openai_cache.js",
 	"types": "dist/openai_cache.d.ts",
 	"exports": {
@@ -22,6 +23,7 @@
 		"clean_cache": "rm -f ./examples/.openai_cache.sqlite",
 		"build": "tsc -p tsconfig.json",
 		"clean": "rm -rf dist",
+		"typecheck": "tsc --noEmit",
 		"prepublishOnly": "npm run test && npm run build",
 		"test": "tsx --test ./test/*_test.ts",
 		"test:watch": "tsx --test --watch ./test/*_test.ts",
