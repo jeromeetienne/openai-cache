@@ -6,6 +6,8 @@ import OpenAICache from "../src/openai_cache.js";
 import KeyvSqlite from '@keyv/sqlite';
 import { Cacheable } from "cacheable";
 
+const __dirname = new URL('.', import.meta.url).pathname;
+
 async function main() {
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
@@ -29,14 +31,31 @@ async function main() {
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 
-	const completion = await openai.chat.completions.create({
+	const chatCompletionChunks = await openai.chat.completions.create({
 		model: "gpt-4o-mini",
 		messages: [{
 			role: "user",
 			content: "Hello!"
+			// content: "count up to 60"
 		}],
+		stream: true,
 	});
-	console.log(completion.choices[0].message.content);
+
+	// consume all the events from the response stream, which will trigger the cost tracking in the OpenAICallTracker
+	let chatCompletionChunk: OpenAI.Chat.Completions.ChatCompletionChunk
+	for await (chatCompletionChunk of chatCompletionChunks) {
+		// console.log(JSON.stringify(chatCompletionChunk, null, 4));
+
+		// Display the delta content of the chunk if it is a chat.completion.chunk object
+		if (chatCompletionChunk.object === "chat.completion.chunk") {
+			const chunk = chatCompletionChunk as OpenAI.Chat.Completions.ChatCompletionChunk;
+			for (const choice of chunk.choices) {
+				if (choice.delta.content) {
+					console.log(`content: ${choice.delta.content}`);
+				}
+			}
+		}
+	}
 }
 
 
