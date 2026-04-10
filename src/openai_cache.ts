@@ -111,8 +111,6 @@ export default class OpenAICache {
 		// Normalize HTTP method
 		const method = (init?.method || "GET").toUpperCase();
 
-		// debugger
-
 		// Generate body hash payload
 		const bodyForHash = OpenAICache._serializeBodyForHash(init?.body);
 		// If body type unsupported, skip caching
@@ -124,13 +122,11 @@ export default class OpenAICache {
 		}
 
 
-
-		// Build cache key and file path
-		const cacheKey = Crypto.createHash("sha256")
-			.update(`${method}:${url}:${bodyForHash}`)
-			.digest("hex");
-
-		// console.log("cacheKey", cacheKey, bodyForHash);
+		///////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////
+		//	
+		///////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////
 
 		// Log a warning if cache is disabled via environment variable, but only once to avoid spamming the console
 		if (process.env.OPENAI_CACHE === "disabled" && this.disabledCacheWarningLogged === false) {
@@ -139,6 +135,19 @@ export default class OpenAICache {
 			}
 			this.disabledCacheWarningLogged = true;
 		}
+
+		///////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////
+		//	
+		///////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////
+
+		// Build cache key and file path
+		const cacheKey = Crypto.createHash("sha256")
+			.update(`${method}:${url}:${bodyForHash}`)
+			.digest("hex");
+
+		// console.log("cacheKey", cacheKey, bodyForHash);
 
 		const cachedValue = await this._cache.get<CachedResponseValue>(cacheKey)
 		if (cachedValue !== undefined && process.env.OPENAI_CACHE !== "disabled") {
@@ -151,10 +160,17 @@ export default class OpenAICache {
 				if (this._verboseLevel > 1) {
 					console.log(Chalk.green(`Cache hit for streamed ${method} ${url}`));
 				}
-				return new Response(cachedBodyBuffer, {
+				const newResponse = new Response(cachedBodyBuffer, {
 					status: cachedValue.status,
 					headers: cachedValue.headers,
 				});
+
+				if (this._markResponseEnabled) {
+					newResponse.headers.set(OpenAICache.MarkResponseName, "true");
+					console.log(Chalk.blue(`Marking cached response with header`), Array.from(newResponse.headers.entries()));
+				}
+
+				return newResponse;
 			}
 
 			if (this._verboseLevel > 1) {
@@ -169,6 +185,9 @@ export default class OpenAICache {
 			// honor this._markResponseEnabled option to indicate cache hit
 			const contentTypeIsJson = newResponse.headers.get("content-type")?.includes("application/json") ? true : false;
 			if (this._markResponseEnabled && contentTypeIsJson) {
+				newResponse.headers.set(OpenAICache.MarkResponseName, "true");
+				console.log(Chalk.blue(`Marking cached response with header`), Array.from(newResponse.headers.entries()));
+				// TODO remove the 'MARKER in body json'
 				try {
 					// decode JSON from cachedBodyBuffer
 					const bodyJson = JSON.parse(cachedBodyBuffer.toString());
