@@ -11,6 +11,7 @@ import KeyvSqlite from '@keyv/sqlite';
 import { Cacheable } from "cacheable";
 
 const hasOpenAIKey = process.env.OPENAI_API_KEY !== undefined && process.env.OPENAI_API_KEY.length > 0;
+const __dirname = new URL('.', import.meta.url).pathname;
 
 async function createOpenAIClient() {
 	if (process.env.OPENAI_API_KEY === undefined || process.env.OPENAI_API_KEY.length === 0) {
