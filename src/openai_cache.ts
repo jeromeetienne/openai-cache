@@ -56,7 +56,7 @@ export default class OpenAICache {
 	private readonly _markResponseEnabled: boolean;
 	private readonly _verboseLevel: number;
 	private disabledCacheWarningLogged: boolean = false;
-	public static readonly MarkResponseName = "X_FROM_OPENAI_CACHE";
+	public static readonly MARK_RESPONSE_NAME = "x_from_openai_cache";
 
 	/**
 	 * Creates a new instance of OpenAICache.
@@ -64,7 +64,7 @@ export default class OpenAICache {
 	 * @param cache cacheable instance
 	 * @param options.markResponseEnabled whether to mark cached responses with an additional property in the JSON body (default: true). 
 	 * This can be useful for downstream logic that needs to differentiate between live and cached responses, but it does modify 
-	 * the original response body so it is optional. so the response is { X_FROM_OPENAI_CACHE: true, ...originalResponseBody }
+	 * the original response body so it is optional. so the response is { x_from_openai_cache: true, ...originalResponseBody }
 	 */
 	constructor(cache?: Cacheable, {
 		markResponseEnabled = false,
@@ -166,7 +166,7 @@ export default class OpenAICache {
 				});
 
 				if (this._markResponseEnabled) {
-					newResponse.headers.set(OpenAICache.MarkResponseName, "true");
+					newResponse.headers.set(OpenAICache.MARK_RESPONSE_NAME, "true");
 					console.log(Chalk.blue(`Marking cached response with header`), Array.from(newResponse.headers.entries()));
 				}
 
@@ -185,14 +185,14 @@ export default class OpenAICache {
 			// honor this._markResponseEnabled option to indicate cache hit
 			const contentTypeIsJson = newResponse.headers.get("content-type")?.includes("application/json") ? true : false;
 			if (this._markResponseEnabled && contentTypeIsJson) {
-				newResponse.headers.set(OpenAICache.MarkResponseName, "true");
+				newResponse.headers.set(OpenAICache.MARK_RESPONSE_NAME, "true");
 				console.log(Chalk.blue(`Marking cached response with header`), Array.from(newResponse.headers.entries()));
 				// TODO remove the 'MARKER in body json'
 				try {
 					// decode JSON from cachedBodyBuffer
 					const bodyJson = JSON.parse(cachedBodyBuffer.toString());
 					// Set the magic property to indicate this response is from cache
-					bodyJson.X_FROM_OPENAI_CACHE = true;
+					bodyJson[OpenAICache.MARK_RESPONSE_NAME] = true;
 					// Rebuild response with modified body
 					const modifiedBodyBuffer = Buffer.from(JSON.stringify(bodyJson));
 					newResponse = new Response(modifiedBodyBuffer, { status: cachedValue.status, headers: cachedValue.headers, });
