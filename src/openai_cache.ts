@@ -160,15 +160,18 @@ export default class OpenAICache {
 				if (this._verboseLevel > 1) {
 					console.log(Chalk.green(`Cache hit for streamed ${method} ${url}`));
 				}
+
+				const headersCopy = new Headers(cachedValue.headers);
+				// honor this._markResponseEnabled option to indicate cache hit
+				if (this._markResponseEnabled) {
+					headersCopy.set(OpenAICache.MARK_RESPONSE_NAME, "true");
+					// console.log(Chalk.blue(`Marking cached response with header - content-type: ${headersCopy.get("content-type")}`), Array.from(headersCopy.entries()));
+				}
+
 				const newResponse = new Response(cachedBodyBuffer, {
 					status: cachedValue.status,
-					headers: cachedValue.headers,
+					headers: headersCopy,
 				});
-
-				if (this._markResponseEnabled) {
-					newResponse.headers.set(OpenAICache.MARK_RESPONSE_NAME, "true");
-					console.log(Chalk.blue(`Marking cached response with header - content-type: ${newResponse.headers.get("content-type")}`), Array.from(newResponse.headers.entries()));
-				}
 
 				return newResponse;
 			}
@@ -186,20 +189,7 @@ export default class OpenAICache {
 			const contentTypeIsJson = newResponse.headers.get("content-type")?.includes("application/json") ? true : false;
 			if (this._markResponseEnabled && contentTypeIsJson) {
 				newResponse.headers.set(OpenAICache.MARK_RESPONSE_NAME, "true");
-				console.log(Chalk.blue(`Marking cached response with header - content - type: ${newResponse.headers.get("content-type")} `), Array.from(newResponse.headers.entries()));
-				// TODO remove the 'MARKER in body json'
-				try {
-					// decode JSON from cachedBodyBuffer
-					const bodyJson = JSON.parse(cachedBodyBuffer.toString());
-					// Set the magic property to indicate this response is from cache
-					bodyJson[OpenAICache.MARK_RESPONSE_NAME] = true;
-					// Rebuild response with modified body
-					const modifiedBodyBuffer = Buffer.from(JSON.stringify(bodyJson));
-					newResponse = new Response(modifiedBodyBuffer, { status: cachedValue.status, headers: cachedValue.headers, });
-				} catch (error) {
-					// If parsing fails, return the original cached response without modification
-					console.warn("Failed to parse cached response body as JSON for header modification:", error);
-				}
+				// console.log(Chalk.blue(`Marking cached response with header - content - type: ${newResponse.headers.get("content-type")} `), Array.from(newResponse.headers.entries()));
 			}
 			// Return cached response (body already buffered)
 			return newResponse;

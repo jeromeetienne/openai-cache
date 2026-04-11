@@ -16,11 +16,11 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"example:openai_cache": "tsx examples/openai_cache_example.ts",
-		"example:tts": "tsx examples/tts_example.ts",
-		"example:image_generation": "tsx examples/image_generation_example.ts",
-		"example:image_understanding": "tsx examples/image_understanding_example.ts",
-		"clean_cache": "rm -f ./examples/.openai_cache.sqlite",
+		"sample:openai_cache": "tsx examples/openai_cache_example.ts",
+		"sample:tts": "tsx examples/tts_example.ts",
+		"sample:image_generation": "tsx examples/image_generation_example.ts",
+		"sample:image_understanding": "tsx examples/image_understanding_example.ts",
+		"open_cache:clean": "rm -f ./examples/.openai_cache.sqlite",
 		"build": "tsc -p tsconfig.json",
 		"clean": "rm -rf dist",
 		"typecheck": "tsc --noEmit",
@@ -64,7 +64,7 @@
 		"zod": "^4.3.6"
 	},
 	"dependencies": {
-		"cacheable": "^2.3.3",
+		"cacheable": "^2.3.4",
 		"chalk": "^5.6.2",
 		"openai-cache": "^1.0.29"
 	}
