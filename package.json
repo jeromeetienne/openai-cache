@@ -16,10 +16,10 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"sample:openai_cache": "tsx examples/openai_cache_example.ts",
-		"sample:tts": "tsx examples/tts_example.ts",
 		"sample:image_generation": "tsx examples/image_generation_example.ts",
 		"sample:image_understanding": "tsx examples/image_understanding_example.ts",
+		"sample:openai_cache": "tsx examples/openai_cache_example.ts",
+		"sample:tts": "tsx examples/tts_example.ts",
 		"open_cache:clean": "rm -f ./examples/.openai_cache.sqlite",
 		"build": "tsc -p tsconfig.json",
 		"clean": "rm -rf dist",
