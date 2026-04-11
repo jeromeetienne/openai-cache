@@ -167,14 +167,14 @@ export default class OpenAICache {
 
 				if (this._markResponseEnabled) {
 					newResponse.headers.set(OpenAICache.MARK_RESPONSE_NAME, "true");
-					console.log(Chalk.blue(`Marking cached response with header`), Array.from(newResponse.headers.entries()));
+					console.log(Chalk.blue(`Marking cached response with header - content-type: ${newResponse.headers.get("content-type")}`), Array.from(newResponse.headers.entries()));
 				}
 
 				return newResponse;
 			}
 
 			if (this._verboseLevel > 1) {
-				console.log(Chalk.green(`Cache hit for non-streamed ${method} ${url}`));
+				console.log(Chalk.green(`Cache hit for non - streamed ${method} ${url} `));
 			}
 
 			// Return cached response
@@ -186,7 +186,7 @@ export default class OpenAICache {
 			const contentTypeIsJson = newResponse.headers.get("content-type")?.includes("application/json") ? true : false;
 			if (this._markResponseEnabled && contentTypeIsJson) {
 				newResponse.headers.set(OpenAICache.MARK_RESPONSE_NAME, "true");
-				console.log(Chalk.blue(`Marking cached response with header`), Array.from(newResponse.headers.entries()));
+				console.log(Chalk.blue(`Marking cached response with header - content - type: ${newResponse.headers.get("content-type")} `), Array.from(newResponse.headers.entries()));
 				// TODO remove the 'MARKER in body json'
 				try {
 					// decode JSON from cachedBodyBuffer
@@ -211,7 +211,7 @@ export default class OpenAICache {
 		// For streaming SSE responses, pipe through to enable progressive streaming + background caching
 		if (OpenAICache._isStreamingResponse(response.headers)) {
 			if (this._verboseLevel > 1) {
-				console.log(Chalk.yellow(`Cache miss for streamed ${method} ${url} - caching in background as it streams in`));
+				console.log(Chalk.yellow(`Cache miss for streamed ${method} ${url} - caching in background as it streams in `));
 			}
 			if (!response.ok || !response.body) {
 				return response;
@@ -220,7 +220,7 @@ export default class OpenAICache {
 		}
 
 		if (this._verboseLevel > 1) {
-			console.log(Chalk.yellow(`Cache miss for non-streamed ${method} ${url} - caching in background`));
+			console.log(Chalk.yellow(`Cache miss for non - streamed ${method} ${url} - caching in background`));
 		}
 
 		const clonedResponse = response.clone();
