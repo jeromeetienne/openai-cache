@@ -38,11 +38,11 @@ async function main() {
 	///////////////////////////////////////////////////////////////////////////////
 
 	async function doCallNoStream() {
-		const prompt = `say hello`
+		const prompt = `hello world`
 		const modelName = 'gpt-4.1-nano';
 
 		// measure call start time
-		const callStart = Date.now();
+		const callStart = performance.now();
 
 		const chatCompletion: OpenAI.Chat.Completions.ChatCompletion = await openai.chat.completions.create({
 			model: modelName,
@@ -55,8 +55,8 @@ async function main() {
 		console.log(`response content: ${Chalk.cyan(responseContent)}`);
 
 		// measure call elapsed time
-		const callElapsed = Date.now() - callStart;
-		console.log(`duration: ${Chalk.cyan(callElapsed)} ms`);
+		const callElapsed = performance.now() - callStart;
+		console.log(`duration: ${Chalk.cyan(callElapsed.toFixed(2))} ms`);
 
 		return { responseContent, callElapsed }
 	}
@@ -68,11 +68,11 @@ async function main() {
 	///////////////////////////////////////////////////////////////////////////////
 
 	async function doCallStreamed() {
-		const prompt = `hello`
+		const prompt = `hello world`
 		const modelName = 'gpt-4.1-nano';
 
 		// measure call start time
-		const callStart = Date.now();
+		const callStart = performance.now();
 
 		const chatCompletionChunks = await openai.chat.completions.create({
 			model: modelName,
@@ -99,10 +99,11 @@ async function main() {
 				}
 			}
 		}
+		console.log(`response content: ${Chalk.cyan(responseContent)}`);
 
 		// measure call elapsed time
-		const callElapsed = Date.now() - callStart;
-		console.log(`duration: ${Chalk.cyan(callElapsed)} ms`);
+		const callElapsed = performance.now() - callStart;
+		console.log(`duration: ${Chalk.cyan(callElapsed.toFixed(2))} ms`);
 
 		return { responseContent, callElapsed }
 	}
@@ -122,11 +123,11 @@ async function main() {
 		await openaiCache.cleanCache();
 
 		console.log()
-		console.log(`--- ${Chalk.magenta('First call (nostream) (should not be in the cache)')} ---`)
+		console.log(`--- ${Chalk.magenta('First call (nostream) (NOT CACHED)')} ---`)
 		const { callElapsed: call1Elapsed } = await doCallNoStream();
 
 		console.log()
-		console.log(`--- ${Chalk.magenta('Second call (nostream) (should be from the cache)')} ---`)
+		console.log(`--- ${Chalk.magenta('Second call (nostream) (IN CACHE)')} ---`)
 		const { callElapsed: call2Elapsed } = await doCallNoStream();
 
 		console.log()
@@ -151,11 +152,11 @@ async function main() {
 		await openaiCache.cleanCache();
 
 		console.log()
-		console.log(`--- ${Chalk.magenta('First call (streamed) (should not be in the cache)')} ---`)
+		console.log(`--- ${Chalk.magenta('First call (streamed) (NOT CACHED)')} ---`)
 		const { responseContent: responseContent1, callElapsed: callElapsed1 } = await doCallStreamed();
 
 		console.log()
-		console.log(`--- ${Chalk.magenta('Second call (streamed) (should be from the cache)')} ---`)
+		console.log(`--- ${Chalk.magenta('Second call (streamed) (IN CACHE)')} ---`)
 		const { responseContent: responseContent2, callElapsed: callElapsed2 } = await doCallStreamed();
 
 		console.log()
