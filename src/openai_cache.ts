@@ -306,8 +306,8 @@ export default class OpenAICache {
 		if (headers instanceof Headers) {
 			return headers.get("content-type")?.includes("text/event-stream") ?? false;
 		}
-		const ct = headers.find(([name]) => name.toLowerCase() === "content-type");
-		return ct?.[1]?.includes("text/event-stream") ?? false;
+		const contentType = headers.find(([name]) => name.toLowerCase() === "content-type");
+		return contentType?.[1]?.includes("text/event-stream") ?? false;
 	}
 
 	// Serialize body into a deterministic string for hashing

@@ -1,10 +1,14 @@
+// node imports
 import Path from 'path';
 
+// npm imports
 import * as OpenAiAgents from '@openai/agents';
 import { Cacheable } from 'cacheable';
-import OpenAICache from '../src/openai_cache';
 import KeyvSqlite from '@keyv/sqlite';
 import { OpenAI } from 'openai';
+
+// local imports
+import OpenAICache from '../src/openai_cache';
 
 async function* streamToAsyncGenerator(stream: NodeJS.ReadableStream): AsyncGenerator<string> {
 	for await (const chunk of stream) {
