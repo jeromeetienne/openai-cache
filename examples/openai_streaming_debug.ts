@@ -16,6 +16,7 @@ async function main() {
 	const sqlitePath = `sqlite://${Path.resolve(__dirname, `./.openai_cache.sqlite`)}`;
 	const sqliteCache = new Cacheable({ secondary: new KeyvSqlite(sqlitePath) });
 	const openaiCache = new OpenAICache(sqliteCache, {
+		markResponseEnabled: true, // mark responses as cacheable when possible
 		verboseLevel: 2, // enable verbose logging to see when cache is hit or missed
 	});
 	const openaiClient = new OpenAI({
