@@ -5,6 +5,12 @@ It supports **text responses**, **binary responses** (e.g. images), and **stream
 
 It is based on the [cacheable](https://cacheable.org/docs/) library, which provides a simple interface for caching data with support for various storage backends (like in-memory, Redis, SQLite, etc). This allows you to easily integrate caching into your OpenAI API usage without having to manage the caching logic yourself.
 
+## Why cache the OpenAI API?
+
+1. **Cut costs** — OpenAI bills per token. Repeated prompts during development, tests, or recurring user flows pay full price every time; cache hits cost nothing.
+2. **Cut latency** — A local SQLite/Redis hit returns in milliseconds vs. seconds round-tripping to OpenAI. Especially impactful for long completions, image generation, and TTS.
+3. **Determinism & resilience** — Re-running the same script gives the same answer (no flaky tests), and cached responses keep working during API outages, rate limits, or quota exhaustion.
+
 You can use any Keyv storage backend (like Redis, filesystem, etc) to store the cached responses. 
 See the [Keyv documentation](https://keyv.org/docs/) for more details on available storage options and how to set them up.
 In the example below, we use a SQLite database to persist the cache.
