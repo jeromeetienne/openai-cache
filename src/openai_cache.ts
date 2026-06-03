@@ -33,8 +33,12 @@ type CachedResponseValue = {
 /**
  * OpenAICachingCacheable is a wrapper around the Fetch API that adds caching capabilities for OpenAI requests.
  * It uses a Cacheable instance to store and retrieve cached responses based on a hash of the request details.
- * - **OPENAI_CACHE** environment variable can be set to "disabled" to disable cache and always fetch 
- * live responses (while still allowing manual cache management via cleanCache() and direct cache access)
+ * - **OPENAI_CACHE** environment variable controls the cache mode:
+ *   - `"disabled"` — never read the cache; always fetch live responses (while still allowing manual cache
+ *     management via cleanCache() and direct cache access).
+ *   - `"offline"` — cache-only: serve hits from the cache, but on a miss **throw** instead of making a live
+ *     request. The mirror image of "disabled". Useful for deterministic, zero-cost replay during development:
+ *     a miss fails loudly so you know immediately a request was not pre-recorded, rather than silently paying.
  * 
  * Example usage:
  * 
@@ -115,6 +119,11 @@ export default class OpenAICache {
 		const bodyForHash = OpenAICache._serializeBodyForHash(init?.body);
 		// If body type unsupported, skip caching
 		if (bodyForHash === null) {
+			// In offline mode we cannot key this request, so it can be neither
+			// served from cache nor allowed to go live — fail loudly.
+			if (process.env.OPENAI_CACHE === "offline") {
+				throw new Error(`OPENAI_CACHE=offline: cannot serve ${method} ${url} from cache (unsupported body type) and refusing to make a live request.`);
+			}
 			if (this._verboseLevel > 1) {
 				console.warn(Chalk.yellow(`Skipping cache for ${method} ${url} due to unsupported body type`));
 			}
@@ -192,6 +201,13 @@ export default class OpenAICache {
 			}
 			// Return cached response (body already buffered)
 			return newResponse;
+		}
+
+		// OPENAI_CACHE=offline: cache-only. A miss must NOT trigger a live call —
+		// throw so the caller learns immediately the request was not pre-recorded
+		// (no silent spend). The mirror image of "disabled" (always-live).
+		if (process.env.OPENAI_CACHE === "offline") {
+			throw new Error(`OpenAI cache miss in OPENAI_CACHE=offline mode: no cached response for ${method} ${url}. Refusing to make a live request — record it first by running without OPENAI_CACHE=offline.`);
 		}
 
 		// Perform network fetch

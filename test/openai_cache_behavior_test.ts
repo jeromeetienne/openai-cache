@@ -163,4 +163,60 @@ describe("OpenAICache behavior", () => {
 			globalThis.fetch = originalFetch;
 		}
 	});
+
+	it("OPENAI_CACHE=offline throws on a miss and never calls the network", async () => {
+		const cache = new Cacheable();
+		const openaiCache = new OpenAICache(cache);
+		const fetchFn = openaiCache.getFetchFn();
+
+		let callCount = 0;
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async () => {
+			callCount += 1;
+			return new Response("ok-response", { status: 200, headers: { "content-type": "text/plain" } });
+		}) as typeof fetch;
+		const prevMode = process.env.OPENAI_CACHE;
+		process.env.OPENAI_CACHE = "offline";
+
+		try {
+			await assert.rejects(
+				() => fetchFn("https://example.test/v1/mock", { method: "POST", body: "uncached-body" }),
+				/OPENAI_CACHE=offline/,
+			);
+			assert.equal(callCount, 0, "offline mode must not make a live request on a miss");
+		} finally {
+			globalThis.fetch = originalFetch;
+			if (prevMode === undefined) { delete process.env.OPENAI_CACHE; } else { process.env.OPENAI_CACHE = prevMode; }
+		}
+	});
+
+	it("OPENAI_CACHE=offline serves a cached hit without calling the network", async () => {
+		const cache = new Cacheable();
+		const openaiCache = new OpenAICache(cache);
+		const fetchFn = openaiCache.getFetchFn();
+
+		let callCount = 0;
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async () => {
+			callCount += 1;
+			return new Response("ok-response", { status: 200, headers: { "content-type": "text/plain" } });
+		}) as typeof fetch;
+		const prevMode = process.env.OPENAI_CACHE;
+
+		try {
+			// Record once in normal mode (one live call), then replay offline.
+			const recorded = await fetchFn("https://example.test/v1/mock", { method: "POST", body: "same-body" });
+			assert.equal(await recorded.text(), "ok-response");
+			assert.equal(callCount, 1);
+
+			process.env.OPENAI_CACHE = "offline";
+			const replayed = await fetchFn("https://example.test/v1/mock", { method: "POST", body: "same-body" });
+			assert.equal(replayed.status, 200);
+			assert.equal(await replayed.text(), "ok-response");
+			assert.equal(callCount, 1, "offline hit must be served from cache, no extra live call");
+		} finally {
+			globalThis.fetch = originalFetch;
+			if (prevMode === undefined) { delete process.env.OPENAI_CACHE; } else { process.env.OPENAI_CACHE = prevMode; }
+		}
+	});
 });
