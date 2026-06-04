@@ -62,7 +62,8 @@ console.log(response.output_text);
 
 | Variable | Values | Description |
 |---|---|---|
-| `OPENAI_CACHE` | `disabled` | Bypass the cache: responses are still written but never read from cache. Useful for testing/debugging without changing code. |
+| `OPENAI_CACHE` | `disabled` | Always-live: never read from the cache, always call the OpenAI API. Responses are still written to the cache. Useful for testing/debugging without changing code. |
+| `OPENAI_CACHE` | `offline` | Cache-only: serve hits from the cache, but on a miss **throw** instead of making a live request. The mirror image of `disabled`. Useful for deterministic, zero-cost replay — a miss fails loudly so you know a request was not pre-recorded, rather than silently paying for it. |
 
 ## PRO/CON
 - **PRO**: Reduces redundant API calls, saving time and costs.
@@ -87,6 +88,15 @@ OPENAI_CACHE=disabled node your_app.js
 ```
 
 It will still write in the cache but will ignore the cached responses and always call the OpenAI API. This is useful for testing or debugging purposes when you want to bypass the cache without changing your code.
+
+### Q. How to run cache-only (offline) ?
+A. Set the `OPENAI_CACHE` environment variable to `offline`:
+
+```bash
+OPENAI_CACHE=offline node your_app.js
+```
+
+It serves responses from the cache and **throws** on a miss instead of making a live request — the mirror image of `disabled`. This is useful for deterministic, zero-cost replay (CI, tests, demos): a miss fails loudly so you immediately know a request was not pre-recorded, rather than silently paying for a live call. To record a missing request, run once without `OPENAI_CACHE=offline`.
 
 ### Q. How to know if a given call was a cache hit or miss?
 A. You can enable the `markResponseEnabled` option when initializing the `OpenAICache`. When this option is enabled, the cache will add a custom property
